@@ -1,0 +1,51 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "triage-tool",
+  "post": {
+    "dir": "dist/client",
+    "entrypoints": {
+      "default": {
+        "entry": "index.html"
+      }
+    }
+  },
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "realtime": true
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Create Triage board",
+        "description": "Create the Triage modqueue board",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/post-create"
+      }
+    ]
+  },
+  "triggers": {
+    "onAppInstall": "/internal/triggers/on-app-install",
+    "onPostReport": "/internal/triggers/on-post-report",
+    "onCommentReport": "/internal/triggers/on-comment-report",
+    "onModAction": "/internal/triggers/on-mod-action"
+  },
+  "scheduler": {
+    "tasks": {
+      "reconcile-modqueue": {
+        "endpoint": "/internal/scheduler/reconcile-modqueue",
+        "cron": "*/2 * * * *"
+      }
+    }
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
+  },
+  "dev": {
+    "subreddit": "triage_tool_dev"
+  }
+}
