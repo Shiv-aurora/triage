@@ -1,0 +1,246 @@
+# Triage Progress
+
+## Current Phase
+
+Phase 5 - Hardening, clean-install regression, README, and app listing.
+
+## What Works
+
+- Node 22 is active locally: `v22.22.3`.
+- Devvit CLI is installed and authenticated as `u/Equivalent_Yam_708`.
+- Scaffold is based on the current official Devvit Web React starter linked from the Devvit Web docs: `npm create devvit@latest --template=react` / `reddit/devvit-template-react`.
+- Project structure is shaped toward the spec:
+  - `src/client` contains the React custom post entry.
+  - `src/server` contains the Hono server, menu endpoint, API endpoint, post creation helper, and trigger handler.
+  - `src/shared/types.ts` contains shared TypeScript data types.
+- Custom post menu action creates a Triage board post.
+- The Triage board initially rendered live on Reddit and showed the empty Redis state.
+- `onPostReport` trigger fired live for reported post `t3_1to3mqw`.
+- Trigger wrote the placeholder item to Redis and logged: `Stored PostReport triage item t3_1to3mqw`.
+- Task 01 backend is implemented:
+  - Shared `TriageItem` and `ScoreBreakdown` types match spec section 4.
+  - Pure scoring engine exists in `src/server/scoring.ts`.
+  - Redis queue layer exists in `src/server/queue.ts`.
+  - Report triggers are wired for posts and comments.
+  - Mod action trigger resolves approved/removed/spammed items and bumps author removal counts for removals.
+  - `/api/queue` returns `getRankedQueue()` as `{ items }`.
+- Local verification passed:
+  - `npm run type-check`
+  - `npm test` (`5` source tests passed, including scoring coverage)
+  - `npm run lint`
+  - `npm run build`
+- Live Task 01 trigger verification on version `0.0.5`:
+  - Reported post `t3_1to4svc` with reason `spam`; log: `Stored PostReport triage item t3_1to4svc score=70`.
+  - Reported post `t3_1to4svo` with reason `threatening violence`; log: `Stored PostReport triage item t3_1to4svo score=80`.
+  - Reported comment `t1_onyh843` with reason `harassment`; log: `Stored CommentReport triage item t1_onyh843 score=80`.
+  - Removed post `t3_1to4svc`; log: `Resolved triage item t3_1to4svc from ModAction removelink`.
+- Task 02 client board is implemented:
+  - `/api/viewer` checks whether the current viewer is a moderator before queue data is fetched.
+  - `/api/queue` is now mod-gated.
+  - `/api/moderate` accepts `{ thingId, action: "approve" | "remove" }`, calls the Reddit API, then resolves the item from Redis.
+  - `src/client/App.tsx` renders loading, blocked, error, empty, and populated states.
+  - The board polls `/api/queue` every 20 seconds.
+  - Triage cards render rank, post title/comment preview, author, prior-removal risk flag, community/automated badges, de-collapsed report reasons, score pill, queue age, score breakdown, Approve, Remove, and Open.
+  - `ReportReasons` separates community and mod/automated reasons and stores source-specific reason counts for new queue items.
+  - `ScoreBreakdown` expands inline inside each card.
+- Local Task 02 verification passed:
+  - `npm run type-check`
+  - `npm test` (`5` source tests passed)
+  - `npm run lint`
+  - `npm run build`
+- Live Task 02 verification:
+  - Uploaded and installed `triage-tool` version `0.0.6` for live board action testing.
+  - Reported Task 02 post `t3_1tocev3` with `spam`; log: `Stored PostReport triage item t3_1tocev3 score=72`.
+  - Reported Task 02 post `t3_1toceve` with `threatening violence`; log: `Stored PostReport triage item t3_1toceve score=82`.
+  - Reported Task 02 comment `t1_oo025vx` with `harassment`; log: `Stored CommentReport triage item t1_oo025vx score=82`.
+  - Live board rendered ranked queue: the `82` score comment/post appeared above the `72` score spam post and older low-score Task 00 items.
+  - Expanded a live `ScoreBreakdown` panel and confirmed each signal contribution rendered.
+  - Approved `t1_oo025vx` from the board; logs: `Moderated t1_oo025vx with action approve`, then queue loads dropped from `7` to `6`.
+  - Removed `t3_1toceve` from the board; logs: `Moderated t3_1toceve with action remove`, `Resolved triage item t3_1toceve from ModAction removelink`, then queue loads dropped from `6` to `5`.
+  - Uploaded and installed final Task 02 display-fix build as version `0.0.7`.
+- Task 03 settings and reconcile backend/UI are implemented:
+  - Shared `Settings` and `SeverityTier` types live in `src/shared/types.ts`.
+  - Settings are stored in Redis under `triage:settings`.
+  - `onAppInstall` seeds default settings; `getSettings()` also seeds defaults for already-installed dev installs.
+  - `scoring.ts` remains pure and takes settings through `scoreTriageItem(item, { settings })`.
+  - Queue upserts load settings before scoring.
+  - Saving or resetting settings recomputes all existing queue items and updates `triage:queue` scores.
+  - The board has a Settings tab with sliders/number inputs for weights, severity tier controls for each known report reason, Save, and Reset.
+  - Scheduled reconcile job exists in `src/server/scheduler.ts` and runs every 2 minutes.
+  - Reconcile fetches current modqueue items, adds missing Redis queue entries, and prunes Redis entries no longer present in the modqueue.
+- Local Task 03 verification passed:
+  - `npm run type-check`
+  - `npm test` (`6` source tests passed, including a non-default settings scoring test)
+  - `npm run lint`
+  - `npm run build` (passes; Vite still prints the starter warning about `sourcemapFileNames`)
+- Live Task 03 verification on installed version `0.0.8`:
+  - Reported post `t3_1todnly` with reason `threats of violence`; log: `Stored PostReport triage item t3_1todnly score=90`.
+  - Reported post `t3_1todnmy` with reason `spam`; log: `Stored PostReport triage item t3_1todnmy score=80`.
+  - Board polling logs showed `Loaded 2 triage queue items`.
+  - Scheduler logs showed `Reconcile complete: added=0 pruned=0 active=2`, then after resolving one item natively, `Reconcile complete: added=0 pruned=0 active=1`.
+  - Approved `t3_1todnmy` natively through Reddit OAuth; log: `Resolved triage item t3_1todnmy from ModAction approvelink`; subsequent board polling showed `Loaded 1 triage queue items`.
+- Task 04 claim/realtime/stale-release implementation is complete:
+  - `src/server/claims.ts` contains claim/unclaim, conflict rejection, and stale-claim release logic.
+  - `/api/claim` and `/api/unclaim` are mod-gated and return clear `409` conflicts for active claims owned by another moderator.
+  - Claim state is folded into the existing `triage:item:{thingId}` JSON record as `claimedBy` and `claimedAt`.
+  - The server publishes realtime events for item upserts, item resolution, claim updates, and claim clears on `triage_live`.
+  - The client subscribes to `triage_live`, applies well-formed messages in place, ignores malformed messages, and keeps the 20-second poll as a safety net.
+  - Cards show a claim badge, Claim/Unclaim controls, and lock Approve/Remove/Claim for non-claimers.
+  - The reconcile job calls stale-claim release and publishes `claim_cleared` events for released claims.
+  - Active-mods presence strip was cut cleanly. Auto-split was cut cleanly. No UI or dead-code stubs were left for either cut feature.
+- Local Task 04 verification passed:
+  - `npm run type-check`
+  - `npm test` (`11` source tests passed, including stale-claim and conflicting-claim coverage)
+  - `npm run lint`
+  - `npm run build` (passes; Vite still prints the starter warning about `sourcemapFileNames`)
+- Live Task 04 deployment:
+  - Uploaded and installed `triage-tool` version `0.0.9`.
+  - Reported post `t3_1toede3` with reason `harassment`; log: `Stored PostReport triage item t3_1toede3 score=90`.
+  - Board polling logs after install showed `Loaded 2 triage queue items`.
+  - Realtime publish did not emit server-side errors in logs after the reported item was stored.
+  - Two-session claim verification is now confirmed: realtime propagation updates other moderators' boards live within about 1-2 seconds, unclaim releases live, and conflicting claims are rejected.
+- Post-Task-04 UI polish and sandbox seed:
+  - Added polished light/dark mode UI and persisted the theme in the client.
+  - Uploaded and installed `triage-tool` version `0.0.10`.
+  - Seeded the live sandbox board with six reported test items for UI review:
+    - `t3_1tofr25` harassment, stored score `102`.
+    - `t3_1tofr2x` threats of violence, stored score `102`.
+    - `t3_1tofr54` spam, stored score `92`.
+    - `t3_1tofr60` off-topic, stored score `83.25`.
+    - `t1_oo0rs9u` reported comment/personal attack, stored score `83.25`.
+    - `t3_1tofr8t` multiple reports, stored score `102`.
+  - Devvit logs confirmed the board endpoint loaded `6` triage queue items after seeding.
+- Task 05 hardening and README are complete:
+  - Replaced the starter README with an accurate project README, moderator install instructions, workflow, architecture notes, verified scope, known attribution limitation, screenshot/demo placeholders, and app listing draft.
+  - Documented the current Vite/Devvit starter build warning as harmless because `npm run build` exits successfully and the warning comes from the starter/tooling output options path.
+  - Reviewed console usage. Remaining `console.log`/`console.warn`/`console.error` calls are server operational logs or client realtime diagnostics, not debug stubs.
+  - No unfinished stub markers remain in app source or README.
+
+## Task 05 Clean-Install Regression Walk
+
+- App install/current build: PASS. `triage-tool` version `0.0.10` is uploaded and installed on `r/triage_tool_dev`.
+- Defaults seed: PASS by implementation and prior install path. `onAppInstall` seeds default settings, and `getSettings()` also seeds defaults for existing installs. A separate brand-new subreddit reinstall was not performed in this workspace.
+- Board post creation: PASS from prior live verification. Existing Triage board post remains available at `https://www.reddit.com/r/triage_tool_dev/comments/1to3hok/triage_board/`.
+- Report several posts/comments: PASS. Six sandbox reports from posts and one comment were stored by live triggers on version `0.0.10`.
+- Board ranks reported items: PASS by stored score logs and board polling logs showing `Loaded 6 triage queue items`.
+- Score breakdown expands: PASS from Task 02 live verification and Task 05 local UI verification.
+- Report reasons de-collapse: PASS from Task 02 live verification and Task 05 local UI verification.
+- Settings change/save re-ranks: PARTIAL. Settings API, Save/Reset, recompute path, and non-default scoring are tested locally; live settings UI re-rank is still outstanding because the private dev subreddit cannot be driven by the available browser automation.
+- Settings reset: PARTIAL for the same reason. Reset and recompute are locally verified, but a live UI reset click was not re-run in Task 05.
+- Approve from board: PASS from Task 02 live verification.
+- Remove from board: PASS from Task 02 live verification.
+- Claim/unclaim: PASS. Two-session live verification confirmed realtime propagation within about 1-2 seconds and live unclaim release.
+- Claim conflict rejection: PASS. Two-session live verification confirmed conflicts are rejected server-side.
+- Reconcile adds missed items and prunes resolved ones: PASS from Task 03 live scheduler logs.
+- UI states: PASS locally for loading, empty, error, blocked, populated, settings, and dark-mode states. Live populated state is also confirmed by deployed logs.
+
+## Confirmed Devvit APIs And Methods
+
+- Devvit Web configuration file: `devvit.json`.
+- Custom post config:
+  - `post.dir: "dist/client"`
+  - `post.entrypoints.default.entry: "index.html"`
+- Server config:
+  - `server.dir: "dist/server"`
+  - `server.entry: "index.cjs"`
+- Menu action registration:
+  - `menu.items[].endpoint`
+  - `location: "subreddit"`
+  - `forUserType: "moderator"`
+- Custom post creation:
+  - `import { reddit } from '@devvit/web/server'`
+  - `reddit.submitCustomPost({ title, entry, textFallback })`
+- Trigger registration:
+  - `triggers.onAppInstall: "/internal/triggers/on-app-install"` in `devvit.json`
+  - `triggers.onPostReport: "/internal/triggers/on-post-report"` in `devvit.json`
+  - `triggers.onCommentReport: "/internal/triggers/on-comment-report"` in `devvit.json`
+  - `triggers.onModAction: "/internal/triggers/on-mod-action"` in `devvit.json`
+  - Current docs confirm trigger endpoints are declared in `devvit.json`, trigger endpoint paths must start with `/internal/`, and supported trigger names include `onPostReport`, `onCommentReport`, and `onModAction`.
+  - Handler request type: `OnPostReportRequest` from `@devvit/web/shared`
+  - Handler request types: `OnAppInstallRequest`, `OnCommentReportRequest`, and `OnModActionRequest` from `@devvit/web/shared`
+  - Handler response type: `TriggerResponse` from `@devvit/web/shared`
+- Server runtime:
+  - `Hono`
+  - `serve({ fetch: app.fetch, createServer, port: getServerPort() })`
+  - `createServer` and `getServerPort` from `@devvit/web/server`
+- Redis client:
+  - `import { redis } from '@devvit/web/server'`
+  - `redis.hSet(key, fieldValues)`
+  - `redis.hGetAll(key)`
+  - `redis.hIncrBy(key, field, increment)`
+  - `redis.zAdd(key, { member, score })`
+  - `redis.zRange(key, start, stop, { by: "rank", reverse: true })`
+  - `redis.zRem(key, [member])`
+  - `redis.del(key)`
+- Task 03 settings API/storage:
+  - Native Devvit settings client exists as `import { settings } from '@devvit/web/server'` / `@devvit/settings`, with `settings.get(name)` and `settings.getAll()`, but it is read-only at runtime and configured through app/installation settings.
+  - Chosen storage: Redis hash `triage:settings`, field `settings` containing serialized `Settings`, because Task 03 requires an in-board editor, Save/Reset, and immediate recompute.
+- Task 03 scheduler API:
+  - `devvit.json.scheduler.tasks["reconcile-modqueue"].endpoint: "/internal/scheduler/reconcile-modqueue"`
+  - `devvit.json.scheduler.tasks["reconcile-modqueue"].cron: "*/2 * * * *"`
+  - Handler request/response types: `TaskRequest` and `TaskResponse` from `@devvit/web/server`.
+  - Current docs confirm recurring Web scheduler tasks are declared in `devvit.json` under `scheduler.tasks`, endpoint paths must start with `/internal/`, and cron uses standard UNIX cron format.
+- Task 04 realtime API:
+  - Current official docs page: `https://developers.reddit.com/docs/capabilities/realtime/overview`.
+  - Realtime permission: `devvit.json.permissions.realtime: true`.
+  - Server publish: `import { realtime } from '@devvit/web/server'`; `await realtime.send(channel, msg)`.
+  - Client subscribe: `import { connectRealtime, disconnectRealtime } from '@devvit/web/client'`; `connectRealtime({ channel, onMessage, onDisconnect })`.
+  - Channel used: `triage_live`.
+  - Installed client type also exposes `isRealtimeConnected(channel)`, but this task only needed subscribe/disconnect lifecycle.
+  - No native presence API was found in the current Web realtime docs or installed `@devvit/realtime` types. Presence strip was cut rather than building a Redis heartbeat feature after the must-ship items.
+- Reddit API server client:
+  - `import { reddit } from '@devvit/web/server'`
+  - `reddit.getPostById(T3(thingId))`
+  - `reddit.getCommentById(T1(thingId))`
+  - Hydrated post/comment models expose `userReportReasons` and `modReportReasons`.
+- Task 03 modqueue listing method:
+  - Current docs and installed types confirm `reddit.getModQueue({ subreddit, type: "all", limit })`.
+  - Return value is a `Listing<Post | Comment>` and `.all()` resolves the modqueue items.
+  - Post model fields used: `id`, `authorName`, `permalink`, `title`, `numberOfReports`, `userReportReasons`, `modReportReasons`.
+  - Comment model fields used: `id`, `authorName`, `permalink`, `body`, `numReports`, `userReportReasons`, `modReportReasons`.
+- Task 02 moderation API methods:
+  - For posts: `const post = await reddit.getPostById(T3(thingId)); await post.approve(); await post.remove(false);`
+  - For comments: `const comment = await reddit.getCommentById(T1(thingId)); await comment.approve(); await comment.remove(false);`
+  - `remove(false)` removes without marking as spam.
+- Task 02 viewer/mod-status check:
+  - `import { context, reddit } from '@devvit/web/server'`
+  - Current subreddit comes from `context.subredditName`.
+  - Current viewer comes from `context.username` with fallback to `reddit.getCurrentUsername()`.
+  - Moderator check uses `await reddit.getModerators({ subredditName, username, limit: 1 }).all()` and treats a non-empty result as moderator access.
+- TID helpers:
+  - `T3(thingId)` and `T1(thingId)` from `@devvit/shared-types/tid.js`.
+- Report payload findings:
+  - `OnPostReportRequest` and `OnCommentReportRequest` include `reason` plus the reported post/comment object.
+  - The trigger payload does not expose reporter identity or a direct human-vs-AutoModerator flag.
+  - Implementation treats hydrated `userReportReasons` as human reports and hydrated `modReportReasons` as moderator/automated reports. Exact AutoModerator vs human moderator attribution is not available from the confirmed trigger payload/model fields.
+- Mod action payload findings:
+  - `OnModActionRequest.action` is a string such as `removelink`, `removecomment`, `spamlink`, `spamcomment`, `approvelink`, or `approvecomment`.
+  - `targetPost`, `targetComment`, and `targetUser` identify the affected content/user when present.
+
+## App And Subreddit
+
+- Requested app name: `triage`.
+- Actual app name: `triage-tool` (`triage` was not accepted/available; Devvit updated `devvit.json`).
+- Latest uploaded/installed version: `0.0.10`.
+- Task 01 version tested: `0.0.5`.
+- Task 02 live action version tested: `0.0.6`; final display fix installed as `0.0.7`.
+- Task 03 version tested: `0.0.8`.
+- Task 04 version installed: `0.0.9`.
+- Task 05/UI-polish version installed: `0.0.10`.
+- Dev subreddit used: `r/triage_tool_dev`.
+- Triage board post: `https://www.reddit.com/r/triage_tool_dev/comments/1to3hok/triage_board/`
+- Test reported post: `https://www.reddit.com/r/triage_tool_dev/comments/1to3mqw/task_00_pipeline_test_2/`
+
+## Blockers And Notes
+
+- The current starter flow requires the Reddit developer portal; the template page initially hung, so the app was created through `devvit upload` with `skip_template=true`.
+- The CLI created `r/triage_tool_dev` as the default playtest subreddit during upload. This differs from the task assumption that the dev subreddit already existed.
+- Live event trigger and Redis write are confirmed by Devvit logs. The custom post rendered successfully before the report. A final visual confirmation after the report was blocked by local browser automation getting stuck on a stale Reddit menu, but the deployed client reads the same Redis-backed `/api/queue` endpoint that the trigger populated.
+- Task 01 live backend trigger and Redis queue mutation are confirmed by Devvit logs on deployed version `0.0.5`.
+- The private dev subreddit is not accessible from the Codex in-app browser session, so I could not visually load the existing custom post to force and observe a live `/api/queue` response after Task 01. The endpoint is implemented and local build/type verification passed; live Redis population/removal was confirmed through deployed trigger logs.
+- Task 02 live board was verified in Brave using the logged-in Reddit session.
+- Existing pre-Task-02 queue records do not have source-specific reason-count fields. The UI falls back cleanly for those items. New Task 02+ records store `communityReportReasonCounts` and `moderatorReportReasonCounts`.
+- In live tests where the moderator account itself reports content, Devvit can surface the same report reason in both `userReportReasons` and `modReportReasons`. The implementation displays the buckets separately because exact human-mod vs automated attribution is still limited by the exposed Reddit model fields.
+- Task 03 optional AutoMod-attribution backfill was not attempted. Part 1 core settings/reconcile work took priority.
+- Live settings UI could not be clicked through Codex automation in this turn: the private subreddit is inaccessible from the in-app browser, and local desktop automation could not attach to the logged-in Chrome/Brave windows (`cgWindowNotFound`; Chrome/Brave AppleScript JavaScript execution is disabled). The settings UI, API, save/reset recompute path, and non-default scoring are implemented and verified locally; live queue and scheduler behavior are verified by deployed logs.
+- Task 04 two-session live UI verification is now confirmed: realtime propagation updates other moderators' boards live within about 1-2 seconds, unclaim releases live, and conflicting claims are rejected. Stale-release logic remains covered by unit tests.
