@@ -115,6 +115,24 @@ Phase 5 - Hardening, clean-install regression, README, and app listing.
   - Documented the current Vite/Devvit starter build warning as harmless because `npm run build` exits successfully and the warning comes from the starter/tooling output options path.
   - Reviewed console usage. Remaining `console.log`/`console.warn`/`console.error` calls are server operational logs or client realtime diagnostics, not debug stubs.
   - No unfinished stub markers remain in app source or README.
+- Frontend-only Reddit-native restyle is complete:
+  - Restyled only `src/client` presentation files to match the provided light/dark references: fixed Reddit-style header, left sidebar, tab underline, compact stat row, feed-width queue, rounded cards, report table, score pill, right-side action rail, floating action button, and dark-mode token set.
+  - Preserved API calls, data fetching, realtime connect/disconnect handlers, claim/unclaim behavior, conflict handling, mod gating, server files, and shared types.
+  - Local visual smoke used the production client build with a mock API and captured light/dark screenshots from `http://localhost:4178`.
+  - Verification passed: `npm run type-check`, `npm test`, `npm run lint`, and `npm run build` (with the previously documented Devvit/Vite warning).
+  - Uploaded and installed `triage-tool` version `0.0.11` on `r/triage_tool_dev`; the existing board post should now load the restyled frontend.
+- Follow-up frontend polish is complete:
+  - Removed generic Reddit-style sidebar links and replaced them with app navigation for Queue, Settings, and Analytics, plus an Account block pinned to the sidebar bottom.
+  - Replaced the Reddit logo/text in the header with the Triage brand and changed the theme toggle from text to sun/moon icon buttons.
+  - Added a client-only Analytics view using the already loaded queue data.
+  - Added a 5-second bottom undo toast for claim, approve, and reject actions. Approve/reject are delayed for 5 seconds so Undo can cancel before the moderation endpoint is called; claim applies immediately and Undo calls the existing unclaim flow.
+  - Verification passed: `npm run type-check`, `npm test`, `npm run lint`, and `npm run build` (with the previously documented Devvit/Vite warning).
+  - Uploaded and installed `triage-tool` version `0.0.12` on `r/triage_tool_dev`.
+- Frontend analytics and undo polish is complete:
+  - Reduced undo toast width by about 20% and added a blue 5-second countdown bar that drains before the toast disappears.
+  - Expanded Analytics with priority mix, content composition, claim coverage, oldest item age, report source split, average score, and top report reasons using only existing queue data.
+  - Verification passed: `npm run type-check`, `npm test`, `npm run lint`, and `npm run build` (with the previously documented Devvit/Vite warning).
+  - Uploaded and installed `triage-tool` version `0.0.13` on `r/triage_tool_dev`.
 
 ## Task 05 Clean-Install Regression Walk
 
@@ -221,12 +239,15 @@ Phase 5 - Hardening, clean-install regression, README, and app listing.
 
 - Requested app name: `triage`.
 - Actual app name: `triage-tool` (`triage` was not accepted/available; Devvit updated `devvit.json`).
-- Latest uploaded/installed version: `0.0.10`.
+- Latest uploaded/installed version: `0.0.13`.
 - Task 01 version tested: `0.0.5`.
 - Task 02 live action version tested: `0.0.6`; final display fix installed as `0.0.7`.
 - Task 03 version tested: `0.0.8`.
 - Task 04 version installed: `0.0.9`.
 - Task 05/UI-polish version installed: `0.0.10`.
+- Frontend restyle version installed: `0.0.11`.
+- Frontend follow-up polish version installed: `0.0.12`.
+- Frontend analytics/undo polish version installed: `0.0.13`.
 - Dev subreddit used: `r/triage_tool_dev`.
 - Triage board post: `https://www.reddit.com/r/triage_tool_dev/comments/1to3hok/triage_board/`
 - Test reported post: `https://www.reddit.com/r/triage_tool_dev/comments/1to3mqw/task_00_pipeline_test_2/`

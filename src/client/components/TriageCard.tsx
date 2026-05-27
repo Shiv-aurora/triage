@@ -40,10 +40,10 @@ const relativeAge = (createdAt: number): string => {
 
 const priorityTone = (item: TriageItem): string => {
   if (item.humanReports > 0) {
-    return 'border-red-200 bg-red-50 text-red-900 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-100';
+    return 'border-orange-100 bg-orange-50 text-[#d93900] dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-200';
   }
 
-  return 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-100';
+  return 'border-blue-200 bg-blue-50 text-[var(--reddit-blue)] dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200';
 };
 
 const redditUrl = (permalink: string): string => {
@@ -76,56 +76,63 @@ export const TriageCard = ({
 
   return (
     <article
-      className={`rounded-lg border bg-white shadow-sm shadow-slate-200/70 transition-colors dark:bg-slate-900 dark:shadow-none ${
+      className={`overflow-hidden rounded-xl border bg-[var(--reddit-surface)] shadow-sm transition-colors hover:border-[var(--reddit-border-strong)] ${
         isLocked
-          ? 'border-violet-200 dark:border-violet-900/70'
-          : 'border-slate-200 dark:border-slate-800'
+          ? 'border-[var(--reddit-blue)]'
+          : 'border-[var(--reddit-border)]'
       }`}
     >
-      <div className="grid gap-3 p-3 sm:grid-cols-[auto_1fr_auto] sm:items-start">
-        <div className="flex items-center gap-2 sm:block">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-slate-950 font-mono text-sm font-semibold text-white dark:bg-slate-100 dark:text-slate-950">
-            {rank}
-          </div>
-          <div className="sm:mt-2">
-            <div className="rounded-full bg-slate-100 px-2 py-1 text-center font-mono text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-              {item.kind}
-            </div>
-          </div>
+      <div className="flex flex-col sm:flex-row">
+        <div className="flex w-full items-center gap-2 border-b border-[var(--reddit-border)] bg-[var(--reddit-subtle)] px-4 py-2 text-xs font-bold uppercase text-slate-400 sm:w-12 sm:flex-col sm:border-b-0 sm:border-r sm:px-2 sm:py-5">
+          <span className="text-sm leading-none">{rank}</span>
+          <span className="text-[10px] leading-none">{item.kind}</span>
         </div>
 
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-0 flex-1 p-5">
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span
-              className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] ${priorityTone(item)}`}
+              className={`rounded border px-2 py-1 text-[10px] font-bold uppercase leading-none ${priorityTone(item)}`}
             >
               {item.humanReports > 0
                 ? `${item.humanReports} community`
                 : `${item.automodReports} automated`}
             </span>
             {item.automodReports > 0 && item.humanReports > 0 ? (
-              <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-sky-900 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-100">
+              <span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-[10px] font-bold uppercase leading-none text-[var(--reddit-blue)] dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200">
                 {item.automodReports} automated
               </span>
             ) : null}
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {relativeAge(item.createdAt)}
+              <span className="text-xs text-[var(--reddit-text-secondary)]">
+                • {relativeAge(item.createdAt)}
+              </span>
+            </div>
+            <span className="shrink-0 rounded-full bg-black px-3 py-1.5 font-mono text-xs font-bold text-white dark:bg-white dark:text-black">
+              {item.score.toFixed(1)}
             </span>
+          </div>
+
+          <div className="mb-2 flex flex-wrap items-center gap-2">
             {isClaimed ? (
-              <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-900 dark:border-violet-900/70 dark:bg-violet-950/50 dark:text-violet-100">
+              <span className="rounded-full border border-[var(--reddit-blue)] bg-blue-50 px-2.5 py-1 text-xs font-bold text-[var(--reddit-blue)] dark:bg-blue-950/30">
                 u/{item.claimedBy} is reviewing
               </span>
             ) : null}
           </div>
 
-          <h2 className="break-words text-base font-semibold leading-snug text-slate-950 dark:text-white">
+          <h2 className="break-words text-xl font-bold leading-tight text-[var(--reddit-text-main)]">
             {heading}
           </h2>
 
-          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <span>u/{item.author}</span>
+          <div className="mb-5 mt-2 flex flex-wrap items-center gap-2 text-sm">
+            {item.authorRemovalCount === 0 ? (
+              <span className="h-5 w-5 rounded-full bg-[var(--reddit-border-strong)]" />
+            ) : null}
+            <span className="font-bold text-[var(--reddit-blue)]">
+              u/{item.author}
+            </span>
             {item.authorRemovalCount > 0 ? (
-              <span className="rounded border border-amber-300 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/50 dark:text-amber-100">
+              <span className="rounded-full bg-[var(--reddit-bg)] px-2 py-0.5 text-xs text-[var(--reddit-text-secondary)]">
                 {item.authorRemovalCount} prior removals
               </span>
             ) : null}
@@ -135,15 +142,12 @@ export const TriageCard = ({
           <ScoreBreakdown breakdown={item.scoreBreakdown} />
         </div>
 
-        <div className="flex flex-row items-center justify-between gap-2 sm:min-w-[9rem] sm:flex-col sm:items-end">
-          <div className="rounded-full bg-slate-950 px-3 py-1.5 font-mono text-lg font-semibold text-white dark:bg-slate-100 dark:text-slate-950">
-            {item.score.toFixed(1)}
-          </div>
-          <div className="grid grid-cols-2 gap-1.5 sm:w-full sm:grid-cols-1">
+        <div className="border-t border-[var(--reddit-border)] bg-[var(--reddit-subtle)] p-4 sm:w-40 sm:border-l sm:border-t-0">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
             {isClaimedByViewer ? (
               <button
                 type="button"
-                className="rounded-md border border-violet-300 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-900 transition hover:bg-violet-100 disabled:cursor-wait disabled:opacity-50 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-100 dark:hover:bg-violet-950"
+                className="rounded-full bg-[var(--reddit-blue)] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--reddit-blue-hover)] disabled:cursor-wait disabled:opacity-50"
                 disabled={isBusy}
                 onClick={() => onUnclaim(item.thingId)}
               >
@@ -152,7 +156,7 @@ export const TriageCard = ({
             ) : (
               <button
                 type="button"
-                className="rounded-md border border-violet-300 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-900 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-100 dark:hover:bg-violet-950"
+                className="rounded-full bg-[var(--reddit-blue)] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--reddit-blue-hover)] disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={isBusy || isLocked}
                 onClick={() => onClaim(item.thingId)}
               >
@@ -161,7 +165,7 @@ export const TriageCard = ({
             )}
             <button
               type="button"
-              className="rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-100 dark:hover:bg-emerald-950"
+              className="rounded-full border border-[var(--reddit-green)] px-4 py-2.5 text-sm font-bold text-[var(--reddit-green)] transition hover:bg-green-50 disabled:cursor-wait disabled:opacity-50 dark:hover:bg-green-950/30"
               disabled={isBusy || isLocked}
               onClick={() => onModerate(item.thingId, 'approve')}
             >
@@ -169,14 +173,14 @@ export const TriageCard = ({
             </button>
             <button
               type="button"
-              className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-900 transition hover:bg-red-100 disabled:cursor-wait disabled:opacity-50 dark:border-red-800 dark:bg-red-950/60 dark:text-red-100 dark:hover:bg-red-950"
+              className="rounded-full border border-[var(--reddit-red)] px-4 py-2.5 text-sm font-bold text-[var(--reddit-red)] transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-50 dark:hover:bg-red-950/30"
               disabled={isBusy || isLocked}
               onClick={() => onModerate(item.thingId, 'remove')}
             >
-              {busyAction === 'remove' ? 'Removing' : 'Remove'}
+              {busyAction === 'remove' ? 'Rejecting' : 'Reject'}
             </button>
             <a
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-center text-sm font-semibold text-slate-800 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="rounded-full border border-[var(--reddit-border-strong)] px-4 py-2.5 text-center text-sm font-bold text-slate-700 transition hover:bg-[var(--reddit-border)] dark:text-slate-200"
               href={redditUrl(item.permalink)}
               target="_blank"
               rel="noreferrer"

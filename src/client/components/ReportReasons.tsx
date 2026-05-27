@@ -28,28 +28,33 @@ export const ReportReasons = ({ item }: ReportReasonsProps) => {
         : [];
 
   return (
-    <section className="grid gap-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">
-          Reports
-        </h3>
-        <span className="text-xs text-slate-500 dark:text-slate-400">
-          {item.reportCount} total
-        </span>
+    <section className="mb-5 overflow-hidden rounded-lg border border-[var(--reddit-border)]">
+      <div className="border-b border-[var(--reddit-border)] bg-[var(--reddit-subtle)] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--reddit-text-secondary)]">
+        Reports ({item.reportCount} total)
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <ReasonGroup
-          label="Community"
-          tone="community"
-          rows={reasonRows(communityReasons, item.communityReportReasonCounts)}
-          fallbackCount={item.humanReports}
-        />
-        <ReasonGroup
-          label="Mod / automated"
-          tone="automated"
-          rows={reasonRows(automatedReasons, item.moderatorReportReasonCounts)}
-          fallbackCount={item.automodReports}
-        />
+      <div className="divide-y divide-[var(--reddit-border)]">
+        {item.humanReports > 0 ? (
+          <ReasonGroup
+            label="User"
+            tone="community"
+            rows={reasonRows(
+              communityReasons,
+              item.communityReportReasonCounts
+            )}
+            fallbackCount={item.humanReports}
+          />
+        ) : null}
+        {item.automodReports > 0 ? (
+          <ReasonGroup
+            label="Auto"
+            tone="automated"
+            rows={reasonRows(
+              automatedReasons,
+              item.moderatorReportReasonCounts
+            )}
+            fallbackCount={item.automodReports}
+          />
+        ) : null}
       </div>
     </section>
   );
@@ -68,33 +73,42 @@ const ReasonGroup = ({
   rows,
   fallbackCount,
 }: ReasonGroupProps) => {
-  const color =
-    tone === 'community'
-      ? 'border-red-200 bg-red-50 text-red-950 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-100'
-      : 'border-sky-200 bg-sky-50 text-sky-950 dark:border-sky-900/70 dark:bg-sky-950/40 dark:text-sky-100';
+  const rowTone =
+    tone === 'automated' ? 'bg-blue-50/40 dark:bg-blue-950/20' : '';
 
   return (
-    <div className={`rounded-md border p-2 ${color}`}>
-      <div className="mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.08em]">
-        <span>{label}</span>
-        <span>{fallbackCount}</span>
-      </div>
+    <div className={rowTone}>
       {rows.length > 0 ? (
-        <ul className="grid gap-1">
+        <ul className="divide-y divide-[var(--reddit-border)]">
           {rows.map(({ reason, count }) => (
             <li
               key={`${label}-${reason}`}
-              className="flex items-start justify-between gap-2 text-sm"
+              className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-sm"
             >
-              <span className="min-w-0 break-words">{reason}</span>
-              <span className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs dark:bg-black/20">
+              <span className="text-[11px] font-bold uppercase text-[var(--reddit-text-secondary)]">
+                {label}:
+              </span>
+              <span className="min-w-0 break-words font-medium text-[var(--reddit-text-main)]">
+                {reason}
+              </span>
+              <span className="font-mono font-bold text-[var(--reddit-text-main)]">
                 x{count}
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm opacity-70">No reports in this bucket.</p>
+        <div className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-sm">
+          <span className="text-[11px] font-bold uppercase text-[var(--reddit-text-secondary)]">
+            {label}:
+          </span>
+          <span className="text-[var(--reddit-text-secondary)]">
+            No reason text available
+          </span>
+          <span className="font-mono font-bold text-[var(--reddit-text-main)]">
+            x{fallbackCount}
+          </span>
+        </div>
       )}
     </div>
   );

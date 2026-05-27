@@ -25,26 +25,26 @@ export const ScoreBreakdown = ({ breakdown }: ScoreBreakdownProps) => {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <section className="border-t border-slate-200 pt-2 dark:border-slate-800">
+    <section>
       <button
         type="button"
-        className="flex w-full items-center justify-between text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+        className="flex items-center gap-1 text-sm font-bold uppercase text-[var(--reddit-blue)] transition hover:underline"
         onClick={() => setExpanded((value) => !value)}
       >
         <span>Score signals</span>
-        <span className="text-slate-400">{expanded ? 'Hide' : 'Show'}</span>
+        <span className="text-xs">{expanded ? '⌃' : '⌄'}</span>
       </button>
       {expanded ? (
-        <dl className="mt-2 grid gap-1.5 text-sm">
+        <dl className="mt-3 overflow-hidden rounded-lg border border-[var(--reddit-border)] text-sm">
           {ORDER.map((key) => (
             <div
               key={key}
-              className="flex items-center justify-between rounded bg-slate-50 px-2 py-1.5 dark:bg-slate-950"
+              className="flex items-center justify-between border-b border-[var(--reddit-border)] bg-[var(--reddit-subtle)] px-4 py-2 last:border-b-0"
             >
-              <dt className="text-slate-600 dark:text-slate-300">
+              <dt className="text-[var(--reddit-text-secondary)]">
                 {LABELS[key]}
               </dt>
-              <dd className="font-mono text-slate-950 dark:text-white">
+              <dd className="font-mono font-bold text-[var(--reddit-text-main)]">
                 +{breakdown[key].toFixed(2)}
               </dd>
             </div>
